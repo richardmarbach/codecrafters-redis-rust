@@ -1,31 +1,29 @@
-use std::{
-    io::{BufRead, BufReader, Write},
-    net::TcpListener,
+use tokio::{
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
+    net::{TcpListener, TcpStream},
 };
 
-struct RESPString {
-    value: String,
-}
+async fn handle_connection(mut stream: TcpStream) -> anyhow::Result<()> {
+    let (reader, writer) = stream.split();
+    let reader = BufReader::new(reader);
+    let mut writer = BufWriter::new(writer);
+    let mut lines = reader.lines();
 
-impl std::fmt::Display for RESPString {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "+{}\r\n", self.value)
+    while let Some(line) = lines.next_line().await? {
+        println!("GOT: {}", line);
+        writer.write(b"+PONG\r\n").await?;
+        writer.flush().await?;
     }
+
+    Ok(())
 }
 
-fn main() {
-    let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let listener = TcpListener::bind("127.0.0.1:6379").await?;
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(mut stream) => {
-                for line in BufReader::new(stream.try_clone().unwrap()).lines() {
-                    stream.write(b"+PONG\r\n").unwrap();
-                }
-            }
-            Err(e) => {
-                println!("error: {}", e);
-            }
-        }
+    loop {
+        let (stream, _) = listener.accept().await?;
+        handle_connection(stream).await?;
     }
 }
