@@ -23,7 +23,18 @@ async fn main() -> anyhow::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:6379").await?;
 
     loop {
-        let (stream, _) = listener.accept().await?;
-        handle_connection(stream).await?;
+        let incoming = listener.accept().await;
+        match incoming {
+            Ok((stream, _)) => {
+                tokio::spawn(async move {
+                    handle_connection(stream).await.unwrap_or_else(|err| {
+                        eprintln!("{}", err);
+                    });
+                });
+            }
+            Err(err) => {
+                eprintln!("{}", err);
+            }
+        };
     }
 }
