@@ -70,8 +70,9 @@ fn decode_array(buffer: &[u8]) -> Result<Option<(Value, usize)>> {
         let Some((value, size)) = decode_message(&buffer[offset..])? else {
             return Ok(None);
         };
+
         values.push(value);
-        offset += size;
+        offset += size + 1;
     }
     Ok(Some((Value::Array(values), offset)))
 }
@@ -184,6 +185,13 @@ impl Value {
 
                 match name.to_ascii_lowercase().as_str() {
                     "ping" => Ok(Command::Ping),
+                    "echo" => {
+                        if args.len() < 1 {
+                            return Err(anyhow!("echo takes 1 argument"));
+                        }
+
+                        Ok(Command::Echo(args[0].into()))
+                    }
                     _ => return Err(anyhow!("invalid command")),
                 }
             }
@@ -212,4 +220,5 @@ impl Value {
 #[derive(Debug)]
 pub enum Command {
     Ping,
+    Echo(String),
 }

@@ -13,6 +13,10 @@ async fn handle_connection(stream: TcpStream) -> anyhow::Result<()> {
                 let value = resp::Value::SimpleString("PONG".to_string());
                 conn.write_value(value).await?;
             }
+            resp::Command::Echo(value) => {
+                let value = resp::Value::BulkString(value);
+                conn.write_value(value).await?;
+            }
         }
     }
 }
