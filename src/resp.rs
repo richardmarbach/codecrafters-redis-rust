@@ -192,6 +192,20 @@ impl Value {
 
                         Ok(Command::Echo(args[0].into()))
                     }
+                    "get" => {
+                        if args.len() < 1 {
+                            return Err(anyhow!("get takes a key argument"));
+                        }
+
+                        Ok(Command::Get(args[0].into()))
+                    }
+                    "set" => {
+                        if args.len() < 2 {
+                            return Err(anyhow!("set takes key and value arguments"));
+                        }
+
+                        Ok(Command::Set(args[0].into(), args[1].into()))
+                    }
                     _ => return Err(anyhow!("invalid command")),
                 }
             }
@@ -221,4 +235,6 @@ impl Value {
 pub enum Command {
     Ping,
     Echo(String),
+    Get(String),
+    Set(String, String),
 }
