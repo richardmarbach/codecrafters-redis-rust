@@ -204,7 +204,16 @@ impl Value {
                             return Err(anyhow!("set takes key and value arguments"));
                         }
 
-                        Ok(Command::Set(args[0].into(), args[1].into()))
+                        if args.len() > 3 {
+                            if args[2] != "PX" {
+                                return Err(anyhow!("invalid set command"));
+                            }
+
+                            let px = args[3].parse::<u64>()?;
+                            Ok(Command::Set(args[0].into(), args[1].into(), Some(px)))
+                        } else {
+                            Ok(Command::Set(args[0].into(), args[1].into(), None))
+                        }
                     }
                     _ => return Err(anyhow!("invalid command")),
                 }
@@ -236,5 +245,5 @@ pub enum Command {
     Ping,
     Echo(String),
     Get(String),
-    Set(String, String),
+    Set(String, String, Option<u64>),
 }

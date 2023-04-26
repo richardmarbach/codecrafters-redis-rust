@@ -14,7 +14,6 @@ async fn handle_connection(stream: TcpStream, store: Arc<Mutex<Store>>) -> anyho
 
     loop {
         let Some(value) = conn.read_value().await? else { return Ok(()) };
-        println!("{:?}", value);
 
         match value.to_command()? {
             resp::Command::Ping => {
@@ -26,13 +25,17 @@ async fn handle_connection(stream: TcpStream, store: Arc<Mutex<Store>>) -> anyho
                 conn.write_value(value).await?;
             }
             resp::Command::Get(key) => {
-                let store = store.lock().await;
+                let mut store = store.lock().await;
                 let value = store.get(&key);
                 conn.write_value(value).await?;
             }
-            resp::Command::Set(key, value) => {
+            resp::Command::Set(key, value, px) => {
                 let mut store = store.lock().await;
-                store.set(key, value);
+
+                match px {
+                    Some(px) => store.set_px(key, value, px),
+                    None => store.set(key, value),
+                };
                 let value = resp::Value::SimpleString("OK".to_string());
                 conn.write_value(value).await?;
             }
